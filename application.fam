@@ -1,0 +1,23 @@
+# UPDI Programmer FAP manifest.
+# Target firmware: Momentum (mntm-012), HW target f7.
+# Build with: ufbt   (see README for the Momentum SDK setup).
+App(
+    appid="updi_prog",
+    name="UPDI Programmer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="updi_prog_app",
+    stack_size=4 * 1024,
+    fap_category="GPIO",
+    fap_version="0.1",
+    fap_icon="icon.png",  # 10x10 1-bit PNG
+    fap_description="UPDI programmer for tinyAVR 0/1/2, megaAVR 0 and AVR EA over GPIO 13/14",
+    fap_author="dhahaj",
+    requires=[
+        "gui",
+        "storage",
+        "dialogs",  # DialogsApp file browser for HEX selection
+    ],
+    # Recursively globs *.c under the app dir; exclude the host-only unit tests
+    # (those are built with gcc on the PC, never linked into the .fap).
+    sources=["*.c*", "!host_test"],
+)
