@@ -147,7 +147,38 @@ static UpdiStatus op_flash(UpdiApp* app) {
     }
 
     set_phase(app, UpdiPhaseVerifying, 0, img.max_offset);
-    st = updi_session_verify_flash(&app->session, image, img.max_offset, worker_progress, app);
+    st = updi_session_verify_flash(
+        &app->session, image, img.max_offset, worker_progress, app, &app->verify_mismatch);
+
+    free(image);
+    updi_session_disconnect(&app->session);
+    return st;
+}
+
+/* ---- verify device flash against an Intel HEX (no erase, no write) ---- */
+
+static UpdiStatus op_verify(UpdiApp* app) {
+    set_phase(app, UpdiPhaseConnecting, 0, 0);
+    /* Never erase during a verify: a locked device just reports UpdiErrLocked. */
+    UpdiStatus st = do_connect(app, false);
+    if(st != UpdiOk) return st;
+
+    const UpdiDevice* dev = app->session.device;
+    uint8_t* image = malloc(dev->flash_size);
+    if(!image) return UpdiErrParam;
+    IntelHexImage img;
+    intel_hex_image_init(&img, image, dev->flash_size, 0, 0xFF);
+
+    set_phase(app, UpdiPhaseReadingFile, 0, 0);
+    st = parse_hex_file(app, &img);
+    if(st != UpdiOk) {
+        free(image);
+        return st;
+    }
+
+    set_phase(app, UpdiPhaseVerifying, 0, img.max_offset);
+    st = updi_session_verify_flash(
+        &app->session, image, img.max_offset, worker_progress, app, &app->verify_mismatch);
 
     free(image);
     updi_session_disconnect(&app->session);
@@ -244,6 +275,7 @@ static int32_t updi_worker_thread(void* context) {
     case UpdiOpConnect: st = op_connect(app); break;
     case UpdiOpChipErase: st = op_chip_erase(app); break;
     case UpdiOpFlash: st = op_flash(app); break;
+    case UpdiOpVerify: st = op_verify(app); break;
     case UpdiOpDump: st = op_dump(app); break;
     case UpdiOpReadFuses: st = op_read_fuses(app); break;
     default: break;

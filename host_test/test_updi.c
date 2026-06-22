@@ -301,7 +301,8 @@ static void test_session_p3(void) {
     CHECK_EQ(updi_session_chip_erase(&s), UpdiOk, "session chip erase");
     CHECK_EQ(updi_session_write_flash(&s, img, len, prog_cb, NULL), UpdiOk, "session write image");
     CHECK_EQ(g_prog_last, len, "progress reached total");
-    CHECK_EQ(updi_session_verify_flash(&s, img, len, NULL, NULL), UpdiOk, "session verify image");
+    CHECK_EQ(
+        updi_session_verify_flash(&s, img, len, NULL, NULL, NULL), UpdiOk, "session verify image");
 
     uint8_t dump[3 * 128];
     CHECK_EQ(updi_session_read_flash(&s, dump, len, NULL, NULL), UpdiOk, "session read flash");
@@ -314,7 +315,19 @@ static void test_session_p3(void) {
     memcpy(bad, img, len);
     bad[5] ^= 0xFF;
     CHECK_EQ(
-        updi_session_verify_flash(&s, bad, len, NULL, NULL), UpdiErrVerify, "verify catches mismatch");
+        updi_session_verify_flash(&s, bad, len, NULL, NULL, NULL),
+        UpdiErrVerify,
+        "verify catches mismatch");
+
+    /* The mismatch report identifies the first differing byte (image vs device). */
+    UpdiVerifyMismatch mm = {.offset = 9999, .expected = 0x11, .actual = 0x22};
+    CHECK_EQ(
+        updi_session_verify_flash(&s, bad, len, NULL, NULL, &mm),
+        UpdiErrVerify,
+        "verify reports mismatch");
+    CHECK_EQ(mm.offset, 5, "mismatch offset is first differing byte");
+    CHECK_EQ(mm.expected, bad[5], "mismatch expected = supplied image byte");
+    CHECK_EQ(mm.actual, img[5], "mismatch actual = device byte");
 
     updi_session_disconnect(&s);
 }

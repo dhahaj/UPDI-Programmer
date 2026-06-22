@@ -14,6 +14,13 @@
 
 typedef void (*UpdiProgressCb)(void* ctx, size_t done, size_t total);
 
+/** Details of the first byte that differed during a verify (filled on UpdiErrVerify). */
+typedef struct {
+    size_t offset; /* 0-based flash offset of the first differing byte */
+    uint8_t expected; /* byte from the supplied image (HEX) */
+    uint8_t actual; /* byte read back from the device */
+} UpdiVerifyMismatch;
+
 typedef struct {
     UpdiLink link;
     UpdiNvm nvm;
@@ -59,13 +66,18 @@ UpdiStatus updi_session_write_flash(
     UpdiProgressCb cb,
     void* cb_ctx);
 
-/** Read back and compare @p len bytes against @p data; UpdiErrVerify on mismatch. */
+/**
+ * Read back and compare @p len bytes against @p data; UpdiErrVerify on mismatch.
+ * If @p mismatch is non-NULL it is filled with the first differing byte's location and
+ * values when UpdiErrVerify is returned.
+ */
 UpdiStatus updi_session_verify_flash(
     UpdiSession* s,
     const uint8_t* data,
     size_t len,
     UpdiProgressCb cb,
-    void* cb_ctx);
+    void* cb_ctx,
+    UpdiVerifyMismatch* mismatch);
 
 /** Read @p len bytes of flash (from base) into @p buf. */
 UpdiStatus

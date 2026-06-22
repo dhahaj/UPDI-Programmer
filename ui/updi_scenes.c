@@ -13,6 +13,7 @@
 typedef enum {
     StartItemConnect,
     StartItemFlash,
+    StartItemVerify,
     StartItemDump,
     StartItemErase,
     StartItemFuses,
@@ -40,6 +41,7 @@ void updi_scene_start_on_enter(void* context) {
     submenu_set_header(m, "UPDI Programmer");
     submenu_add_item(m, "Connect / Read Device", StartItemConnect, start_submenu_cb, app);
     submenu_add_item(m, "Flash from HEX", StartItemFlash, start_submenu_cb, app);
+    submenu_add_item(m, "Verify from HEX", StartItemVerify, start_submenu_cb, app);
     submenu_add_item(m, "Dump Flash", StartItemDump, start_submenu_cb, app);
     submenu_add_item(m, "Chip Erase", StartItemErase, start_submenu_cb, app);
     submenu_add_item(m, "Read Fuses", StartItemFuses, start_submenu_cb, app);
@@ -59,6 +61,12 @@ bool updi_scene_start_on_event(void* context, SceneManagerEvent event) {
     case StartItemFlash:
         if(pick_hex_file(app)) {
             app->op = UpdiOpFlash;
+            scene_manager_next_scene(app->scene_manager, UpdiSceneProgress);
+        }
+        return true;
+    case StartItemVerify:
+        if(pick_hex_file(app)) {
+            app->op = UpdiOpVerify;
             scene_manager_next_scene(app->scene_manager, UpdiSceneProgress);
         }
         return true;
@@ -244,6 +252,7 @@ static const char* op_name(UpdiOp op) {
     case UpdiOpConnect: return "Connect";
     case UpdiOpChipErase: return "Chip erase";
     case UpdiOpFlash: return "Flash";
+    case UpdiOpVerify: return "Verify";
     case UpdiOpDump: return "Dump";
     case UpdiOpReadFuses: return "Read fuses";
     default: return "Operation";
@@ -259,6 +268,9 @@ void updi_scene_result_on_enter(void* context) {
         case UpdiOpFlash:
             furi_string_set(app->text, "Write + read-back verify passed.");
             break;
+        case UpdiOpVerify:
+            furi_string_set(app->text, "Verify passed.\nDevice matches HEX.");
+            break;
         case UpdiOpChipErase:
             furi_string_set(app->text, "Chip erased.");
             break;
@@ -273,7 +285,14 @@ void updi_scene_result_on_enter(void* context) {
     } else {
         furi_string_printf(
             app->text, "%s failed:\n%s", op_name(app->op), updi_status_str(app->result));
-        if(app->result == UpdiErrLocked)
+        if(app->result == UpdiErrVerify)
+            furi_string_cat_printf(
+                app->text,
+                "\nFirst diff at 0x%04X:\nHEX 0x%02X vs chip 0x%02X",
+                (unsigned)app->verify_mismatch.offset,
+                app->verify_mismatch.expected,
+                app->verify_mismatch.actual);
+        else if(app->result == UpdiErrLocked)
             furi_string_cat_str(app->text, "\nUse Chip Erase to unlock (erases all).");
         else if(app->result == UpdiErrTimeout)
             furi_string_cat_str(app->text, "\nCheck wiring and 3.3 V power.");
@@ -413,7 +432,8 @@ void updi_scene_about_on_enter(void* context) {
         "  UPDI pin fused to RESET/GPIO\n"
         "  needs a 12 V programmer.\n"
         "\n"
-        "Firmware: Momentum mntm-012\n");
+        "Firmware: Momentum mntm-012\n"
+        "https://github.com/dhahaj/UPDI-Programmer\n");
     widget_reset(app->widget);
     widget_add_string_element(app->widget, 64, 0, AlignCenter, AlignTop, FontPrimary, "About");
     widget_add_text_scroll_element(

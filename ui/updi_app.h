@@ -38,6 +38,7 @@ typedef enum {
     UpdiOpConnect,
     UpdiOpChipErase,
     UpdiOpFlash,
+    UpdiOpVerify,
     UpdiOpDump,
     UpdiOpReadFuses,
 } UpdiOp;
@@ -88,6 +89,7 @@ typedef struct {
     size_t prog_done;
     size_t prog_total;
     UpdiStatus result; /* status of the last finished op */
+    UpdiVerifyMismatch verify_mismatch; /* first differing byte when result == UpdiErrVerify */
     FuriTimer* timer;
 
     /* shared text */

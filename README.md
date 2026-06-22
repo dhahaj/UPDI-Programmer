@@ -22,6 +22,7 @@ The build artifact is [`dist/updi_prog.fap`](dist/updi_prog.fap).
 | Read fuses | ✅ |
 | Chip erase (+ unlock locked devices) | ✅ |
 | Flash from Intel HEX + read-back verify | ✅ |
+| Verify flash against Intel HEX (reports first diff) | ✅ |
 | Dump flash → Intel HEX on SD | ✅ |
 | NVM P:0 (tinyAVR 0/1/2, megaAVR 0) | ✅ |
 | NVM P:3 (AVR EA) | ✅ |
@@ -143,11 +144,15 @@ From **Apps → GPIO → UPDI Programmer**:
    part, and shows flash/eeprom/fuse geometry.
 2. **Flash from HEX** — pick a `.hex` file from the SD card. The app chip-erases, writes,
    and **read-back verifies**. The target is released from reset afterwards so it runs.
-3. **Dump Flash** — reads the whole flash and writes `/ext/updi/<device>_dump.hex`.
-4. **Chip Erase** — erases flash/EEPROM. Also unlocks a locked device.
-5. **Read Fuses** — lists fuse bytes.
-6. **Settings** — baud rate.
-7. **About / Wiring** — on-device wiring and warnings.
+3. **Verify from HEX** — pick a `.hex` file and compare it against the device's current
+   flash **without erasing or writing**. On a mismatch it reports the first differing byte
+   (flash offset, expected HEX value vs. value on the chip). A locked device reports
+   "Device locked" rather than being touched.
+4. **Dump Flash** — reads the whole flash and writes `/ext/updi/<device>_dump.hex`.
+5. **Chip Erase** — erases flash/EEPROM. Also unlocks a locked device.
+6. **Read Fuses** — lists fuse bytes.
+7. **Settings** — baud rate.
+8. **About / Wiring** — on-device wiring and warnings.
 
 ---
 

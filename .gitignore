@@ -1,18 +1,7 @@
-# Build outputs
-/dist/
-*.fap
-*.elf
-*.o
-
-# Host test binaries
-/host_test/*.exe
-/host_test/run_tests
-
-# ufbt / IDE
-.ufbt/
-.vscode/
-compile_commands.json
-
-# Python
-__pycache__/
-*.pyc
+dist/*
+.vscode
+.clang-format
+.clangd
+.editorconfig
+.env
+.ufbt

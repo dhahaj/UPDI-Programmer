@@ -104,7 +104,8 @@ UpdiStatus updi_session_verify_flash(
     const uint8_t* data,
     size_t len,
     UpdiProgressCb cb,
-    void* cb_ctx) {
+    void* cb_ctx,
+    UpdiVerifyMismatch* mismatch) {
     if(!s->connected || !s->device) return UpdiErrParam;
     uint8_t rb[UPDI_READ_CHUNK];
     size_t off = 0;
@@ -112,7 +113,16 @@ UpdiStatus updi_session_verify_flash(
         size_t chunk = (len - off < UPDI_READ_CHUNK) ? (len - off) : UPDI_READ_CHUNK;
         UpdiStatus st = updi_nvm_read(&s->nvm, s->device->flash_address + off, rb, chunk);
         if(st != UpdiOk) return st;
-        if(memcmp(rb, data + off, chunk) != 0) return UpdiErrVerify;
+        for(size_t i = 0; i < chunk; i++) {
+            if(rb[i] != data[off + i]) {
+                if(mismatch) {
+                    mismatch->offset = off + i;
+                    mismatch->expected = data[off + i];
+                    mismatch->actual = rb[i];
+                }
+                return UpdiErrVerify;
+            }
+        }
         off += chunk;
         if(cb) cb(cb_ctx, off, len);
     }
