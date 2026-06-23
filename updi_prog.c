@@ -44,15 +44,16 @@ static UpdiApp* updi_app_alloc(void) {
     view_dispatcher_add_view(app->view_dispatcher, UpdiViewPopup, popup_get_view(app->popup));
     app->var_item_list = variable_item_list_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, UpdiViewVarItemList, variable_item_list_get_view(app->var_item_list));
+        app->view_dispatcher,
+        UpdiViewVarItemList,
+        variable_item_list_get_view(app->var_item_list));
 
     app->lock = furi_mutex_alloc(FuriMutexTypeNormal);
     app->file_path = furi_string_alloc();
     app->text = furi_string_alloc();
     app->baud = 115200;
 
-    view_dispatcher_attach_to_gui(
-        app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     return app;
 }
 
